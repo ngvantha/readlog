@@ -1,0 +1,44 @@
+{
+  "ServerUrl": [
+    "\\\\10.254.248.140\\d$\\WebSite\\jbus\\Logs",
+    "\\\\10.254.248.150\\d$\\WebSite\\jbus\\Logs",
+    "\\\\10.254.248.176\\d$\\WebSite\\jbus\\Logs",
+    "\\\\10.254.248.178\\d$\\WebSite\\jbus\\Logs"
+  ],
+  "InsuranceFileSettings": {
+    "CopyFileInsuranceFromServer": true,
+    "SearchFilePatternInsurance": "InsuranceService-.*-.?202307\\d{2}.log",
+    "CopyFileInsuranceDefaultSearchPattern": false,
+    "SearchInsuranceContent": true,
+    "SearchPattern20427": ".*Policy Success.*",
+    "SearchPattern20428": ".*Quote Error.*",
+    "SearchPatternResNumber": "BusReservationNumber=(\\d+)"
+  },
+  "ReservationFileSettings": {
+    "CopyFileReservationFromServer": true,
+    "SearchFilePatternReservation": "ReservationRepository-.*-.?202307\\d{2}.log",
+    "CopyFileReservationDefaultSearchPattern": false,
+    "SearchReservationContent": true,
+    "SearchReservationContentPattern": ".*\"ukhz\":\"20230618\",\"zuno\":\"07000111\",.*\"Payment_Status\":\"1\""
+  },
+  "NormalSettings": {
+    "CopyFileFromServer": false,
+    "SearchFilePattern": ".*202307\\d{2}.log",
+    "SearchReservationContent": true,
+    "SearchReservationContentPattern": "Error",
+    "DeleteAllLogFilesWhenProcessingIsSuccessful": false
+  },
+  "Mail": {
+    "Send_flg": true,
+    "SmtpServer": "khobho.cybermail.jp",
+    "Uid": "test-no-reply@mail.j-bus.co.jp",
+    "Pwd": "e-aZGD5YkmMmRn7,ur",
+    "To": "test-no-reply@mail.j-bus.co.jp",
+    "ToZurich": "test-no-reply@mail.j-bus.co.jp",
+    "Bcc": "",
+    "From": "support@mail.j-bus.co.jp",
+    "Replyto": "support@mail.j-bus.co.jp",
+    "Port": 587
+  }
+
+}
