@@ -24,6 +24,7 @@ namespace ZurichInsuranceTool
         public static double totalInsurance20428 = 0;
         public static double totalInsurance = 0;
         public static double totalReservationPeople = 0;
+        public static double totalAllReservationPeople = 0;
         public static string logFilePath = null;
         static void Main(string[] args)
         {
@@ -61,6 +62,11 @@ namespace ZurichInsuranceTool
                     if (jsonObject.InsuranceFileSettings.SearchInsuranceContent)
                     {
                         Dictionary<string, string> reservationList = ReadFileInsurance();
+                        if (ReadFileAllReservation())
+                        {
+                            CalculatorALLReservationNumberPeople();
+                        }
+
                         if (reservationList.Count > 0)
                         {
                             if (ReadFileReservation(reservationList))
@@ -83,6 +89,7 @@ namespace ZurichInsuranceTool
                                         double rate = (totalInsurance20427 / totalReservationPeople) * 100;
                                         body += $"加入率   : {Math.Round(rate, 2)}% \r\n";
                                         body += $"証券枚数購入失敗   : {totalInsurance20428}枚\r\n";
+                                        body += $" クレジットカード対象の乗車券枚数総計  : {totalAllReservationPeople}枚\r\n";
 
 
                                         body += "\r\n\r\n";
@@ -238,7 +245,7 @@ namespace ZurichInsuranceTool
             LogToFile(logFilePath, "Read File Reservation Start");
             try
             {
-                using (StreamWriter writer = new StreamWriter(destemp + @"\" + year + month + "Reservation.log", false))
+                using (StreamWriter writer = new StreamWriter(destemp + @"\Reservation.log", false))
                 {
                     foreach (var item in resvervationNumberList)
                     {
@@ -304,44 +311,142 @@ namespace ZurichInsuranceTool
             }
 
         }
-
         public static bool CalculatorReservationNumberPeople()
         {
-            string destemp = currentDirectory + @"\tmp\Reservation\temp";
+            string filePath = currentDirectory + @"\tmp\Reservation\temp\Reservation.log";
             string searchPatternPeople = @"""otrk"":\[(\d+(?:,\d+)*)\],""onrk"":\[(\d+(?:,\d+)*)\]";
             LogToFile(logFilePath, "CalculatorReservationNumberPeople Start");
             try
             {
-                string[] resultInsuranceFiles = Directory.GetFiles(destemp);
-                foreach (string filePath in resultInsuranceFiles)
+                string[] fileContent = File.ReadAllLines(filePath);
+                foreach (string line in fileContent)
                 {
-                    string[] fileContent = File.ReadAllLines(filePath);
-                    foreach (string line in fileContent)
+                    Match match = Regex.Match(line, searchPatternPeople);
+                    if (match.Success)
                     {
-                        Match match = Regex.Match(line, searchPatternPeople);
-                        if (match.Success)
-                        {
-                            string otrkGroup = match.Groups[1].Value;
-                            string onrkGroup = match.Groups[2].Value;
-                            int[] otrkValues = Array.ConvertAll(otrkGroup.Split(','), int.Parse);
-                            int[] onrkValues = Array.ConvertAll(onrkGroup.Split(','), int.Parse);
-                            int otrkSum = otrkValues.Sum();
-                            int onrkSum = onrkValues.Sum();
-                            Console.WriteLine("otrk: " + string.Join(", ", otrkValues));
-                            Console.WriteLine("onrk: " + string.Join(", ", onrkValues));
-                            Console.WriteLine("People Total: " + (otrkSum + onrkSum));
-                            LogToFile(logFilePath, "otrk: " + string.Join(", ", otrkValues));
-                            LogToFile(logFilePath, "onrk: " + string.Join(", ", onrkValues));
-                            LogToFile(logFilePath, "People Total: " + (otrkSum + onrkSum));
-                            totalReservationPeople += (otrkSum + onrkSum);
-
-                        }
+                        string otrkGroup = match.Groups[1].Value;
+                        string onrkGroup = match.Groups[2].Value;
+                        int[] otrkValues = Array.ConvertAll(otrkGroup.Split(','), int.Parse);
+                        int[] onrkValues = Array.ConvertAll(onrkGroup.Split(','), int.Parse);
+                        int otrkSum = otrkValues.Sum();
+                        int onrkSum = onrkValues.Sum();
+                        Console.WriteLine("otrk: " + string.Join(", ", otrkValues));
+                        Console.WriteLine("onrk: " + string.Join(", ", onrkValues));
+                        Console.WriteLine("People Total: " + (otrkSum + onrkSum));
+                        LogToFile(logFilePath, "otrk: " + string.Join(", ", otrkValues));
+                        LogToFile(logFilePath, "onrk: " + string.Join(", ", onrkValues));
+                        LogToFile(logFilePath, "People Total: " + (otrkSum + onrkSum));
+                        totalReservationPeople += (otrkSum + onrkSum);
 
                     }
+
+
                 }
                 Console.WriteLine("People Reservation Total: " + totalReservationPeople);
                 LogToFile(logFilePath, "People Reservation Total: " + totalReservationPeople);
                 LogToFile(logFilePath, "CalculatorReservationNumberPeople End");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error :" + ex.Message);
+                LogToFile(logFilePath, "Error" + ex.Message);
+                return false;
+            }
+        }
+        public static bool ReadFileAllReservation()
+        {
+            string destemp = currentDirectory + @"\tmp\Reservation\temp";
+            // read conten file
+
+            LogToFile(logFilePath, "Read File All Reservation Start");
+            try
+            {
+                using (StreamWriter writer = new StreamWriter(destemp + @"\AllReservation.log", false))
+                {
+
+                    //".*""ukhz"":""20230618"",""zuno"":""07000111"",.*""Payment_Status"":""1"""
+                    //"(?:.)*?""ukhz"":""20230701"",""zuno"":""08024602""(?:.)*?""Payment_Status"":""1"""g
+                    string searchPattern1 = @"""ukhz"":""([0-9]+)"",""zuno"":""([0-9]+)""(?:.)*?""Payment_Status"":""1""";
+                    string[] files = Directory.GetFiles(desDirectoryReservation).ToArray();
+                    Console.WriteLine("Searching All....................... " + DateTime.Now);
+                    LogToFile(logFilePath, "Searching All....................... " + DateTime.Now);
+                    HashSet<string> unique = new HashSet<string>();
+                    foreach (string file in files)
+                    {
+                        using (FileStream fs = new FileStream(file, FileMode.Open, FileAccess.Read))
+                        using (BufferedStream bs = new BufferedStream(fs))
+                        using (StreamReader reader = new StreamReader(bs))
+                        {
+                            string line;
+                            while ((line = reader.ReadLine()) != null)
+                            {
+                                Match match = Regex.Match(line, searchPattern1);
+                                if (match.Success)
+                                {
+                                    string ukhz = match.Groups[1].Value;
+                                    string zuno = match.Groups[2].Value;
+                                    if (!unique.Contains(ukhz + zuno))
+                                    {
+                                        unique.Add(ukhz + zuno);
+                                        Console.WriteLine("Reservation :" + ukhz + zuno);
+                                        Console.WriteLine("Result :" + match);
+                                        writer.WriteLine(match);
+                                        LogToFile(logFilePath, match.ToString());
+                                    }
+                                }
+
+                            }
+
+                        }
+                    }
+                }
+                LogToFile(logFilePath, "Read File All Reservation End");
+                return true;
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error :" + ex.Message);
+                LogToFile(logFilePath, "Error :" + ex.Message);
+                return false;
+            }
+
+        }
+        public static bool CalculatorALLReservationNumberPeople()
+        {
+            string filePath = currentDirectory + @"\tmp\Reservation\temp\AllReservation.log";
+            string searchPatternPeople = @"""otrk"":\[(\d+(?:,\d+)*)\],""onrk"":\[(\d+(?:,\d+)*)\]";
+            LogToFile(logFilePath, "CalculatorAllReservationNumberPeople Start");
+            try
+            {
+                string[] fileContent = File.ReadAllLines(filePath);
+                foreach (string line in fileContent)
+                {
+                    Match match = Regex.Match(line, searchPatternPeople);
+                    if (match.Success)
+                    {
+                        string otrkGroup = match.Groups[1].Value;
+                        string onrkGroup = match.Groups[2].Value;
+                        int[] otrkValues = Array.ConvertAll(otrkGroup.Split(','), int.Parse);
+                        int[] onrkValues = Array.ConvertAll(onrkGroup.Split(','), int.Parse);
+                        int otrkSum = otrkValues.Sum();
+                        int onrkSum = onrkValues.Sum();
+                        Console.WriteLine("otrk: " + string.Join(", ", otrkValues));
+                        Console.WriteLine("onrk: " + string.Join(", ", onrkValues));
+                        Console.WriteLine("People Total: " + (otrkSum + onrkSum));
+                        LogToFile(logFilePath, "otrk: " + string.Join(", ", otrkValues));
+                        LogToFile(logFilePath, "onrk: " + string.Join(", ", onrkValues));
+                        LogToFile(logFilePath, "People Total: " + (otrkSum + onrkSum));
+                        totalAllReservationPeople += (otrkSum + onrkSum);
+
+                    }
+
+
+                }
+                Console.WriteLine("People Reservation Total: " + totalAllReservationPeople);
+                LogToFile(logFilePath, "People Reservation Total: " + totalAllReservationPeople);
+                LogToFile(logFilePath, "CalculatorAllReservationNumberPeople End");
                 return true;
             }
             catch (Exception ex)
